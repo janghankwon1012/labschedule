@@ -179,21 +179,29 @@
   // 이름 변경
   $("#btn-profile").addEventListener("click", () => {
     $("#profile-name").value = state.profile?.display_name || "";
+    $("#profile-pw").value = "";
     $("#profile-error").textContent = "";
     openModal("#modal-profile");
   });
   $("#profile-form").addEventListener("submit", async (e) => {
     e.preventDefault();
+    const err = $("#profile-error");
+    err.textContent = "";
+    const name = $("#profile-name").value.trim();
+    const pw = $("#profile-pw").value;
+    if (!name) { err.textContent = "이름을 입력하세요."; return; }
+    if (pw && pw.length < 8) { err.textContent = "비밀번호는 8자 이상이어야 합니다."; return; }
     try {
-      await api.updateMyName($("#profile-name").value.trim());
+      await api.updateMyName(name);
+      if (pw) await api.updatePassword(pw);
       state.profile = await api.getMyProfile();
       state.profiles = await api.listProfiles();
       $("#btn-profile").textContent = state.profile.display_name;
       closeModal("#modal-profile");
       state.calendar?.refetchEvents();
-      toast("이름을 저장했습니다.");
+      toast(pw ? "이름과 비밀번호를 저장했습니다." : "이름을 저장했습니다.");
     } catch (ex) {
-      $("#profile-error").textContent = ex.message;
+      err.textContent = ex.message;
     }
   });
 
