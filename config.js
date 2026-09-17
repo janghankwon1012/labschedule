@@ -2,8 +2,8 @@
 // labsched 설정 — 이 파일만 채우면 됩니다.
 //
 // Supabase 대시보드 → Project Settings → API 에서 복사:
-//   Project URL          → SUPABASE_URL
-//   anon public key      → SUPABASE_ANON_KEY   (공개되어도 안전한 키. RLS 가 데이터를 보호함)
+//   Project URL          → "https://YOUR-PROJECT-REF.supabase.co"
+//   anon public key      → "YOUR-ANON-PUBLIC-KEY",
 //
 // ※ service_role 키는 절대 여기에 넣지 마세요.
 // ============================================================================
