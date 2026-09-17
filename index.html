@@ -135,7 +135,11 @@
     </div>
     <div class="card">
       <h2>멤버</h2>
-      <p class="muted small">새 멤버 초대는 Supabase 대시보드 → Authentication → Users → <b>Invite user</b> 에서 이메일을 입력하면 초대 메일이 갑니다. 첫 로그인 시 이름과 비밀번호를 정하게 됩니다.</p>
+      <p class="muted small">
+        새 멤버는 Supabase 대시보드 → Authentication → Users → <b>Add user</b> 에서 추가합니다.<br>
+        ① <b>Send invitation</b>: 이메일로 초대 링크 발송 → 멤버가 링크를 누르면 이 사이트에서 이름·비밀번호를 정함 (기본 메일 발송은 시간당 몇 건으로 제한되니 한 번에 여러 명이면 ②)<br>
+        ② <b>Create new user</b>: 이메일 + 임시 비밀번호 입력, Auto confirm 체크 → 멤버에게 임시 비밀번호를 알려주면 로그인 후 상단 이름 클릭 → "내 정보"에서 이름과 비밀번호를 바꿀 수 있음
+      </p>
       <div id="admin-members"></div>
     </div>
     <div class="card">
@@ -248,9 +252,13 @@
 <!-- ===================================================== 이름 변경 모달 -->
 <div class="modal-backdrop" id="modal-profile" hidden>
   <div class="modal card" role="dialog" aria-modal="true">
-    <h2>내 이름</h2>
+    <h2>내 정보</h2>
     <form id="profile-form" novalidate>
       <div class="form-row"><label for="profile-name">예약표에 표시될 이름</label><input type="text" id="profile-name" required maxlength="50"></div>
+      <div class="form-row">
+        <label for="profile-pw">새 비밀번호 <span class="muted small">(바꾸지 않으려면 비워 두세요)</span></label>
+        <input type="password" id="profile-pw" autocomplete="new-password" minlength="8" placeholder="8자 이상">
+      </div>
       <div class="errorlist" id="profile-error"></div>
       <div class="form-actions">
         <button class="btn btn-primary" type="submit">저장</button>
