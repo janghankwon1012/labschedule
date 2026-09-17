@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>실험실 장비 예약</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧪</text></svg>">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ===================================================== 상단 바 -->
+<header class="topbar" id="topbar" hidden>
+  <a class="brand" href="#calendar">🧪 <span id="lab-name">실험실 장비 예약</span></a>
+  <nav>
+    <a href="#calendar" data-view="calendar">캘린더</a>
+    <a href="#my" data-view="my">내 예약</a>
+    <a href="#stats" data-view="stats">통계</a>
+    <a href="#admin" data-view="admin" id="nav-admin" hidden>관리</a>
+  </nav>
+  <div class="userbox">
+    <button class="link" id="btn-profile" title="이름 변경"></button>
+    <button class="link" id="btn-logout">로그아웃</button>
+  </div>
+</header>
+
+<main class="container" id="main">
+
+  <!-- =================================================== 로그인 -->
+  <section id="view-login" class="view login-wrap" hidden>
+    <div class="card">
+      <h1 id="login-title">로그인</h1>
+      <form id="login-form" novalidate>
+        <div class="form-row">
+          <label for="login-email">이메일</label>
+          <input type="email" id="login-email" autocomplete="username" required autofocus>
+        </div>
+        <div class="form-row">
+          <label for="login-password">비밀번호</label>
+          <input type="password" id="login-password" autocomplete="current-password" required>
+        </div>
+        <div class="errorlist" id="login-error"></div>
+        <button class="btn btn-primary" type="submit" style="width:100%">로그인</button>
+      </form>
+      <p class="muted small" style="margin:14px 0 0">
+        <a href="#" id="link-forgot">비밀번호를 잊었어요</a> · 계정이 없으면 관리자에게 초대를 요청하세요.
+      </p>
+      <div id="config-warning" class="msg msg-error" hidden style="margin-top:14px">
+        <b>config.js 가 아직 설정되지 않았습니다.</b><br>
+        web/config.js 를 열어 SUPABASE_URL 과 SUPABASE_ANON_KEY 를 채워 주세요.
+      </div>
+    </div>
+  </section>
+
+  <!-- =================================================== 비밀번호 설정/재설정 -->
+  <section id="view-setpw" class="view login-wrap" hidden>
+    <div class="card">
+      <h1>비밀번호 설정</h1>
+      <p class="muted small">앞으로 로그인에 사용할 비밀번호를 정해 주세요. (8자 이상)</p>
+      <form id="setpw-form" novalidate>
+        <div class="form-row">
+          <label for="setpw-name">이름 (예약표에 표시됨)</label>
+          <input type="text" id="setpw-name" placeholder="예: 김민지">
+        </div>
+        <div class="form-row">
+          <label for="setpw-1">새 비밀번호</label>
+          <input type="password" id="setpw-1" autocomplete="new-password" required minlength="8">
+        </div>
+        <div class="form-row">
+          <label for="setpw-2">새 비밀번호 확인</label>
+          <input type="password" id="setpw-2" autocomplete="new-password" required minlength="8">
+        </div>
+        <div class="errorlist" id="setpw-error"></div>
+        <button class="btn btn-primary" type="submit" style="width:100%">저장하고 시작하기</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- =================================================== 캘린더 -->
+  <section id="view-calendar" class="view" hidden>
+    <div class="cal-layout">
+      <aside>
+        <div class="card">
+          <button class="btn btn-primary" id="btn-new" style="width:100%">＋ 새 예약</button>
+          <p class="muted small" style="margin:12px 0 0">빈 시간을 클릭하거나 드래그해도 예약할 수 있어요. 내 예약은 드래그로 시간을 옮길 수 있습니다.</p>
+        </div>
+        <div class="card">
+          <h2>장비</h2>
+          <ul class="legend" id="legend"></ul>
+          <p class="small" style="margin:8px 0 0"><a href="#" id="toggle-all">전체 선택/해제</a></p>
+        </div>
+      </aside>
+      <div id="calendar"></div>
+    </div>
+  </section>
+
+  <!-- =================================================== 내 예약 -->
+  <section id="view-my" class="view" hidden>
+    <div class="card">
+      <h1>다가오는 예약</h1>
+      <div id="my-upcoming"></div>
+    </div>
+    <div class="card">
+      <h2>지난 예약 <span class="muted small">(최근 30건)</span></h2>
+      <div id="my-past"></div>
+    </div>
+  </section>
+
+  <!-- =================================================== 통계 -->
+  <section id="view-stats" class="view" hidden>
+    <div class="row-between" style="margin-bottom:14px">
+      <h1 style="margin:0">사용 통계</h1>
+      <select id="stats-days" class="select-inline">
+        <option value="7">최근 7일</option>
+        <option value="14">최근 14일</option>
+        <option value="30" selected>최근 30일</option>
+        <option value="90">최근 90일</option>
+        <option value="365">최근 1년</option>
+      </select>
+      <span class="muted small" id="stats-note"></span>
+    </div>
+    <div class="stat-grid" id="stats-tiles"></div>
+    <div class="card"><h2>장비별</h2><div id="stats-equipment"></div></div>
+    <div class="card"><h2>사용자별</h2><div id="stats-users"></div></div>
+  </section>
+
+  <!-- =================================================== 관리 -->
+  <section id="view-admin" class="view" hidden>
+    <div class="card">
+      <div class="row-between">
+        <h1 style="margin:0">장비</h1>
+        <button class="btn btn-sm" id="btn-add-equipment">＋ 장비 추가</button>
+      </div>
+      <div id="admin-equipment" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <h2>멤버</h2>
+      <p class="muted small">새 멤버 초대는 Supabase 대시보드 → Authentication → Users → <b>Invite user</b> 에서 이메일을 입력하면 초대 메일이 갑니다. 첫 로그인 시 이름과 비밀번호를 정하게 됩니다.</p>
+      <div id="admin-members"></div>
+    </div>
+    <div class="card">
+      <h2>알림 설정</h2>
+      <form id="settings-form" novalidate>
+        <div class="form-row">
+          <label for="set-slack">슬랙 Incoming Webhook URL</label>
+          <input type="url" id="set-slack" placeholder="https://hooks.slack.com/services/...">
+          <div class="help">비워 두면 알림을 보내지 않습니다. 슬랙 → 앱 → Incoming Webhooks → 채널 선택 후 URL 복사.</div>
+        </div>
+        <div class="form-row">
+          <label for="set-site">사이트 주소 (알림 메시지의 링크)</label>
+          <input type="url" id="set-site" placeholder="https://mylab.github.io/labsched/">
+        </div>
+        <div class="form-row">
+          <label for="set-reminder">리마인더: 시작 몇 분 전</label>
+          <input type="number" id="set-reminder" min="0" max="1440" step="5">
+        </div>
+        <div class="errorlist" id="settings-error"></div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">저장</button>
+          <button class="btn" type="button" id="btn-test-slack">테스트 메시지 보내기</button>
+          <span class="muted small" id="settings-status"></span>
+        </div>
+      </form>
+    </div>
+  </section>
+</main>
+
+<!-- ===================================================== 예약 폼 모달 -->
+<div class="modal-backdrop" id="modal-reservation" hidden>
+  <div class="modal card" role="dialog" aria-modal="true">
+    <h2 id="res-title">새 예약</h2>
+    <form id="res-form" novalidate>
+      <input type="hidden" id="res-id">
+      <div class="form-row">
+        <label for="res-equipment">장비</label>
+        <select id="res-equipment" required></select>
+        <div class="help" id="res-equipment-help"></div>
+      </div>
+      <div class="form-row" id="res-user-row" hidden>
+        <label for="res-user">예약자 <span class="muted small">(관리자 대리 예약)</span></label>
+        <select id="res-user"></select>
+      </div>
+      <div class="form-row">
+        <label for="res-start">시작</label>
+        <input type="datetime-local" id="res-start" required step="1800">
+      </div>
+      <div class="form-row">
+        <label for="res-end">종료</label>
+        <input type="datetime-local" id="res-end" required step="1800">
+      </div>
+      <div class="form-row">
+        <label for="res-purpose">목적/메모</label>
+        <input type="text" id="res-purpose" maxlength="200" placeholder="예: 이온 로딩 테스트">
+      </div>
+      <div class="errorlist" id="res-error"></div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit" id="res-submit">예약하기</button>
+        <button class="btn" type="button" data-close>닫기</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================================================== 예약 상세 모달 -->
+<div class="modal-backdrop" id="modal-detail" hidden>
+  <div class="modal card" role="dialog" aria-modal="true">
+    <h2 id="det-title"></h2>
+    <dl class="dl" id="det-body"></dl>
+    <div class="errorlist" id="det-error"></div>
+    <div class="form-actions">
+      <button class="btn" type="button" id="det-edit">수정</button>
+      <button class="btn btn-danger" type="button" id="det-cancel">예약 취소</button>
+      <button class="btn" type="button" data-close>닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================== 장비 편집 모달 (관리자) -->
+<div class="modal-backdrop" id="modal-equipment" hidden>
+  <div class="modal card" role="dialog" aria-modal="true">
+    <h2 id="eq-title">장비 추가</h2>
+    <form id="eq-form" novalidate>
+      <input type="hidden" id="eq-id">
+      <div class="form-row"><label for="eq-name">이름</label><input type="text" id="eq-name" required maxlength="100"></div>
+      <div class="form-row"><label for="eq-location">위치</label><input type="text" id="eq-location" placeholder="예: 301호 광학 테이블 B"></div>
+      <div class="form-row"><label for="eq-description">설명</label><input type="text" id="eq-description"></div>
+      <div class="form-grid-2">
+        <div class="form-row"><label for="eq-color">캘린더 색</label><input type="color" id="eq-color" value="#3788d8"></div>
+        <div class="form-row"><label for="eq-max">1회 최대 시간 (0=제한 없음)</label><input type="number" id="eq-max" min="0" max="720" value="0"></div>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-row"><label for="eq-sort">정렬 순서</label><input type="number" id="eq-sort" value="0"></div>
+        <div class="form-row"><label class="check"><input type="checkbox" id="eq-active" checked> 예약 가능 (수리 중이면 해제)</label></div>
+      </div>
+      <div class="form-row">
+        <label>사용 허가자 <span class="muted small">(아무도 체크하지 않으면 누구나 예약 가능)</span></label>
+        <div class="check-list" id="eq-access"></div>
+      </div>
+      <div class="errorlist" id="eq-error"></div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">저장</button>
+        <button class="btn" type="button" data-close>닫기</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================================================== 이름 변경 모달 -->
+<div class="modal-backdrop" id="modal-profile" hidden>
+  <div class="modal card" role="dialog" aria-modal="true">
+    <h2>내 이름</h2>
+    <form id="profile-form" novalidate>
+      <div class="form-row"><label for="profile-name">예약표에 표시될 이름</label><input type="text" id="profile-name" required maxlength="50"></div>
+      <div class="errorlist" id="profile-error"></div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">저장</button>
+        <button class="btn" type="button" data-close>닫기</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="vendor/supabase.js"></script>
+<script src="vendor/fullcalendar/index.global.min.js"></script>
+<script src="vendor/fullcalendar/ko.global.min.js"></script>
+<script src="config.js"></script>
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
