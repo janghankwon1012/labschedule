@@ -640,9 +640,41 @@
     $("#eq-access").innerHTML = state.profiles.map((p) =>
       `<label><input type="checkbox" value="${p.id}" ${allowed.has(p.id) ? "checked" : ""}> ${esc(p.display_name || p.email)}</label>`).join("");
     $("#eq-error").textContent = "";
+    $("#eq-delete").hidden = !eq;   // 새 장비 추가 화면에서는 삭제 버튼 숨김
     openModal("#modal-equipment");
     $("#eq-name").focus();
   }
+
+  // 장비 삭제: 예약 기록이 없으면 바로 삭제, 있으면 잠금 처리를 안내
+  $("#eq-delete").addEventListener("click", async () => {
+    const id = $("#eq-id").value;
+    const eq = equipmentById(id);
+    if (!eq) return;
+    const err = $("#eq-error");
+    err.textContent = "";
+    try {
+      const n = await api.admin.countReservations(id);
+      if (n > 0) {
+        const lock = confirm(
+          `"${eq.name}" 에는 예약 기록이 ${n}건 있어 삭제하면 과거 예약과 통계가 함께 사라지므로 삭제할 수 없습니다.\n\n` +
+          `대신 "예약 불가"로 잠가서 새 예약만 막을까요? (캘린더에는 취소선으로 표시됩니다)`
+        );
+        if (!lock) return;
+        await api.admin.saveEquipment({ ...eq, is_active: false });
+        toast(`"${eq.name}" 을(를) 잠갔습니다.`);
+      } else {
+        if (!confirm(`"${eq.name}" 장비를 삭제할까요? 되돌릴 수 없습니다.`)) return;
+        await api.admin.deleteEquipment(id);
+        toast(`"${eq.name}" 을(를) 삭제했습니다.`);
+      }
+      closeModal("#modal-equipment");
+      await renderAdmin();
+      renderLegend();
+      state.calendar?.refetchEvents();
+    } catch (ex) {
+      err.textContent = ex.message;
+    }
+  });
   $("#eq-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const err = $("#eq-error");
