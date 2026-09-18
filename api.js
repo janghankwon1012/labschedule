@@ -20,6 +20,7 @@
     if (code === "42501") return Object.assign(new Error("권한이 없습니다."), { code });
     if (code === "23514" && msg.includes("end_after_start")) return Object.assign(new Error("종료 시각은 시작 시각보다 뒤여야 합니다."), { code });
     if (code === "23505") return Object.assign(new Error("같은 이름이 이미 있습니다."), { code });
+    if (code === "23503") return Object.assign(new Error("연결된 예약 기록이 있어 삭제할 수 없습니다."), { code });
     if (code === "P0001") return Object.assign(new Error(msg), { code }); // 트리거가 만든 한국어 메시지 그대로
     if (msg === "Invalid login credentials") return new Error("이메일 또는 비밀번호가 올바르지 않습니다.");
     if (msg === "Email not confirmed") return new Error("이메일 인증이 아직 안 됐습니다. 초대 메일의 링크를 먼저 눌러 주세요.");
@@ -151,6 +152,16 @@
         if (!row.id) delete row.id;
         const rows = await run(client.from("equipment").upsert(row).select("*"));
         return rows[0];
+      },
+      /** 이 장비의 예약(취소 포함) 건수. 삭제 가능 여부 판단용 */
+      async countReservations(equipmentId) {
+        const { count, error } = await client.from("reservations").select("id", { count: "exact", head: true }).eq("equipment_id", equipmentId);
+        if (error) throw friendly(error);
+        return count || 0;
+      },
+      /** 예약 기록이 없는 장비만 삭제된다 (DB 외래키가 보호). 기록이 있으면 23503 오류 */
+      async deleteEquipment(equipmentId) {
+        return run(client.from("equipment").delete().eq("id", equipmentId));
       },
       async setAccess(equipmentId, userIds) {
         await run(client.from("equipment_access").delete().eq("equipment_id", equipmentId));
